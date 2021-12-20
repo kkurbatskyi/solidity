@@ -93,6 +93,23 @@ void runTestCase(TestCase::Config const& _config, TestCase::TestCaseCreator cons
 	}
 }
 
+class Batcher
+{
+public:
+	Batcher(size_t _offset, size_t _batches):
+		m_offset(_offset),
+		m_batches(_batches)
+	{}
+
+	bool enabled() const { return m_counter % m_batches == m_offset; }
+	void next() { m_counter++; }
+
+private:
+	size_t m_offset;
+	size_t m_batches;
+	size_t m_counter = 0;
+};
+
 int registerTests(
 	boost::unit_test::test_suite& _suite,
 	boost::filesystem::path const& _basepath,
@@ -100,7 +117,8 @@ int registerTests(
 	bool _enforceViaYul,
 	bool _enforceCompileToEwasm,
 	vector<string> const& _labels,
-	TestCase::TestCaseCreator _testCaseCreator
+	TestCase::TestCaseCreator _testCaseCreator,
+	Batcher& _batcher
 )
 {
 	int numTestsAdded = 0;
@@ -131,33 +149,39 @@ int registerTests(
 					_enforceViaYul,
 					_enforceCompileToEwasm,
 					_labels,
-					_testCaseCreator
+					_testCaseCreator,
+					_batcher
 				);
 		_suite.add(sub_suite);
 	}
 	else
 	{
-		// This must be a vector of unique_ptrs because Boost.Test keeps the equivalent of a string_view to the filename
-		// that is passed in. If the strings were stored directly in the vector, pointers/references to them would be
-		// invalidated on reallocation.
-		static vector<unique_ptr<string const>> filenames;
+		// TODO would be better to set the test to disabled.
+		if (_batcher.enabled())
+		{
+			// This must be a vector of unique_ptrs because Boost.Test keeps the equivalent of a string_view to the filename
+			// that is passed in. If the strings were stored directly in the vector, pointers/references to them would be
+			// invalidated on reallocation.
+			static vector<unique_ptr<string const>> filenames;
 
-		filenames.emplace_back(make_unique<string>(_path.string()));
-		auto test_case = make_test_case(
-			[config, _testCaseCreator]
-			{
-				BOOST_REQUIRE_NO_THROW({
-					runTestCase(config, _testCaseCreator);
-				});
-			},
-			_path.stem().string(),
-			*filenames.back(),
-			0
-		);
-		for (auto const& _label: _labels)
-			test_case->add_label(_label);
-		_suite.add(test_case);
-		numTestsAdded = 1;
+			filenames.emplace_back(make_unique<string>(_path.string()));
+			auto test_case = make_test_case(
+				[config, _testCaseCreator]
+				{
+					BOOST_REQUIRE_NO_THROW({
+						runTestCase(config, _testCaseCreator);
+					});
+				},
+				_path.stem().string(),
+				*filenames.back(),
+				0
+			);
+			for (auto const& _label: _labels)
+				test_case->add_label(_label);
+			_suite.add(test_case);
+			numTestsAdded = 1;
+		}
+		_batcher.next();
 	}
 	return numTestsAdded;
 }
@@ -191,6 +215,7 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 	if (solidity::test::CommonOptions::get().disableSemanticTests)
 		cout << endl << "--- SKIPPING ALL SEMANTICS TESTS ---" << endl << endl;
 
+	Batcher batcher(1, 200);
 	// Include the interactive tests in the automatic tests as well
 	for (auto const& ts: g_interactiveTestsuites)
 	{
@@ -202,15 +227,17 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 		if (ts.needsVM && solidity::test::CommonOptions::get().disableSemanticTests)
 			continue;
 
-		solAssert(registerTests(
+		//solAssert(
+		registerTests(
 			master,
 			options.testPath / ts.path,
 			ts.subpath,
 			options.enforceViaYul,
 			options.enforceCompileToEwasm,
 			ts.labels,
-			ts.testCaseCreator
-		) > 0, std::string("no ") + ts.title + " tests found");
+			ts.testCaseCreator,
+			batcher
+		);// > 0, std::string("no ") + ts.title + " tests found");
 	}
 
 	if (solidity::test::CommonOptions::get().disableSemanticTests)
