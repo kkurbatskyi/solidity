@@ -178,6 +178,86 @@ void initializeOptions()
 
 	solidity::test::CommonOptions::setSingleton(std::move(options));
 }
+
+vector<string> const boostTestSuites{
+	"TemporaryDirectoryTest",
+	"SolidityAuctionRegistrar",
+	"SolidityWallet",
+	"Checksum",
+	"CommonData",
+	"CommonIOTest",
+	"FixedHashTest",
+	"IndentedWriterTest",
+	"IpfsHash",
+	"IterateReplacing",
+	"JsonTest",
+	"Keccak256",
+	"LazyInitTests",
+	"LEB128Test",
+	"StringUtils",
+	"SwarmHash",
+	"UTF8",
+	"WhiskersTest",
+	"CharStreamTest",
+	"ScannerTest",
+	"SourceLocationTest",
+	"Assembler",
+	"Optimiser",
+	"CompilabilityChecker",
+	"YulInlinableFunctionFilter",
+	"KnowledgeBase",
+	"YulCodeSize",
+	"YulObjectParser",
+	"YulParser",
+	"ABIDecoderTest",
+	"ABIEncoderTest",
+	"Assembly",
+	"GasCostTests",
+	"GasMeterTests",
+	"SolidityImports",
+	"SolidityInlineAssembly",
+	"LibSolc",
+	"Metadata",
+	"SemVerMatcher",
+	"SolidityCompiler",
+	"SolidityEndToEndTest",
+	"SolidityExpressionCompiler",
+	"SolidityNameAndTypeResolution",
+	"SolidityNatspecJSON",
+	"SolidityOptimizer",
+	"SolidityParser",
+	"SolidityTypes",
+	"StandardCompiler",
+	"ViewPureChecker",
+	"FunctionCallGraphTest",
+	"FileReaderTest",
+	"BytesUtilsTest",
+	"TestFileParserTest",
+	"TestFunctionCallTest",
+	"CommandLineInterfaceTest",
+	"CommandLineInterfaceAllowPathsTest",
+	"CommandLineParserTest",
+	"Phaser",
+// Those are the interactive tests.
+//	"yulOptimizerTests",
+//	"yulInterpreterTests",
+//	"objectCompiler",
+//	"yulControlFlowGraph",
+//	"yulStackLayout",
+//	"controlFlowSideEffects",
+//	"functionSideEffects",
+//	"yulSyntaxTests",
+//	"evmCodeTransform",
+//	"syntaxTests",
+//	"errorRecoveryTests",
+//	"semanticTests",
+//	"ASTJSON",
+//	"ABIJson",
+//	"smtCheckerTests",
+//	"gasTests",
+//	"ewasmTranslationTests",
+};
+
 }
 
 // TODO: Prototype -- why isn't this declared in the boost headers?
@@ -202,6 +282,21 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 	Batcher batcher(CommonOptions::get().selectedBatch, CommonOptions::get().batches);
 	if (CommonOptions::get().batches > 1)
 		cout << "Batch " << CommonOptions::get().selectedBatch << " out of " << CommonOptions::get().batches << endl;
+
+	cout << "Size of master suite: " << master.size() << endl;
+	solAssert(
+		boostTestSuites.size() == master.size(),
+		"Test suite count ("s +
+		to_string(master.size()) +
+		") does not match the count in boostTest.cpp ("s +
+		to_string(boostTestSuites.size()) +
+		"). If you add or remove a boost test suite, you have to also adjust "s +
+		"the boostTestSuites variable in boostTest.cpp."s
+	);
+
+	for (string const& suite: boostTestSuites)
+		if (!batcher.checkAndAdvance())
+			removeTestSuite(suite);
 
 	// Include the interactive tests in the automatic tests as well
 	for (auto const& ts: g_interactiveTestsuites)
