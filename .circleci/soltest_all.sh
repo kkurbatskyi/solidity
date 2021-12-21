@@ -53,9 +53,9 @@ do
         [ "${EVM}" = "byzantium" ] && [ "${OPTIMIZE}" = "0" ] && EWASM_ARGS="--ewasm"
         ENFORCE_GAS_ARGS=""
         [ "${EVM}" = "${DEFAULT_EVM}" ] && ENFORCE_GAS_ARGS="--enforce-gas-cost"
-        # Run SMTChecker tests only when OPTIMIZE == 0
+        # Run SMTChecker tests only when OPTIMIZE == 0 and EVM is default
         DISABLE_SMTCHECKER=""
-        [ "${OPTIMIZE}" != "0" ] && DISABLE_SMTCHECKER="-t !smtCheckerTests"
+        [ "${OPTIMIZE}" != "0" -o "${EVM}" != "${DEFAULT_EVM}" ] && DISABLE_SMTCHECKER="-t !smtCheckerTests"
 
         EVM="$EVM" \
         OPTIMIZE="$OPTIMIZE" \
