@@ -31,7 +31,12 @@ disable=
     redefined-outer-name,
     singleton-comparison,
     too-few-public-methods,
+    too-many-arguments,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-locals,
     too-many-public-methods,
+    too-many-statements,
     ungrouped-imports
 
 [BASIC]
