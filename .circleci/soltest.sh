@@ -59,7 +59,7 @@ get_logfile_basename() {
 
 # TODO we need two different log files for the parallel runs
 
-BOOST_TEST_ARGS=("--color_output=no" "--show_progress=yes" "--logger=JUNIT,error,test_results/$(get_logfile_basename).xml" "${BOOST_TEST_ARGS[@]}")
+BOOST_TEST_ARGS=("-l test_suite" "${BOOST_TEST_ARGS[@]}")
 SOLTEST_ARGS=("--evm-version=$EVM" "${SOLTEST_FLAGS[@]}")
 
 test "${OPTIMIZE}" = "1" && SOLTEST_ARGS+=(--optimize)
@@ -76,8 +76,8 @@ echo "Running ${REPODIR}/build/test/soltest ${BOOST_TEST_ARGS[*]} -- ${SOLTEST_A
 "${REPODIR}/build/test/soltest" --list_content "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH1_ARGS}
 "${REPODIR}/build/test/soltest" --list_content "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH2_ARGS}
 
-"${REPODIR}/build/test/soltest" -l test_suite "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH1_ARGS} &
-"${REPODIR}/build/test/soltest" -l test_suite "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH2_ARGS} &
+"${REPODIR}/build/test/soltest"  "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH1_ARGS} &
+"${REPODIR}/build/test/soltest"  "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH2_ARGS} &
 
 
 wait
