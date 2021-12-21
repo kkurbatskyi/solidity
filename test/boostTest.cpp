@@ -93,23 +93,6 @@ void runTestCase(TestCase::Config const& _config, TestCase::TestCaseCreator cons
 	}
 }
 
-class Batcher
-{
-public:
-	Batcher(size_t _offset, size_t _batches):
-		m_offset(_offset),
-		m_batches(_batches)
-	{}
-
-	bool enabled() const { return m_counter % m_batches == m_offset; }
-	void next() { m_counter++; }
-
-private:
-	size_t m_offset;
-	size_t m_batches;
-	size_t m_counter = 0;
-};
-
 int registerTests(
 	boost::unit_test::test_suite& _suite,
 	boost::filesystem::path const& _basepath,
@@ -118,7 +101,7 @@ int registerTests(
 	bool _enforceCompileToEwasm,
 	vector<string> const& _labels,
 	TestCase::TestCaseCreator _testCaseCreator,
-	Batcher& _batcher
+	solidity::test::Batcher& _batcher
 )
 {
 	int numTestsAdded = 0;
@@ -157,7 +140,7 @@ int registerTests(
 	else
 	{
 		// TODO would be better to set the test to disabled.
-		if (_batcher.enabled())
+		if (_batcher.checkAndAdvance())
 		{
 			// This must be a vector of unique_ptrs because Boost.Test keeps the equivalent of a string_view to the filename
 			// that is passed in. If the strings were stored directly in the vector, pointers/references to them would be
@@ -181,7 +164,6 @@ int registerTests(
 			_suite.add(test_case);
 			numTestsAdded = 1;
 		}
-		_batcher.next();
 	}
 	return numTestsAdded;
 }
@@ -204,6 +186,8 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] );
 
 test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 {
+	using namespace solidity::test;
+
 	master_test_suite_t& master = framework::master_test_suite();
 	master.p_name.value = "SolidityTests";
 
@@ -215,7 +199,10 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 	if (solidity::test::CommonOptions::get().disableSemanticTests)
 		cout << endl << "--- SKIPPING ALL SEMANTICS TESTS ---" << endl << endl;
 
-	Batcher batcher(1, 200);
+	Batcher batcher(CommonOptions::get().selectedBatch, CommonOptions::get().batches);
+	if (CommonOptions::get().batches > 1)
+		cout << "Batch " << CommonOptions::get().selectedBatch << " out of " << CommonOptions::get().batches << endl;
+
 	// Include the interactive tests in the automatic tests as well
 	for (auto const& ts: g_interactiveTestsuites)
 	{
@@ -227,6 +214,7 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 		if (ts.needsVM && solidity::test::CommonOptions::get().disableSemanticTests)
 			continue;
 
+		//TODO
 		//solAssert(
 		registerTests(
 			master,
@@ -237,7 +225,8 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 			ts.labels,
 			ts.testCaseCreator,
 			batcher
-		);// > 0, std::string("no ") + ts.title + " tests found");
+		);
+		// > 0, std::string("no ") + ts.title + " tests found");
 	}
 
 	if (solidity::test::CommonOptions::get().disableSemanticTests)
