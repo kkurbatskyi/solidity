@@ -73,7 +73,11 @@ BATCH2_ARGS="--batches $((2 * CIRCLE_NODE_TOTAL)) --selected-batch $((2 * CIRCLE
 
 echo "Running ${REPODIR}/build/test/soltest ${BOOST_TEST_ARGS[*]} -- ${SOLTEST_ARGS[*]}"
 
-"${REPODIR}/build/test/soltest" "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH1_ARGS} &
-"${REPODIR}/build/test/soltest" "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH2_ARGS} &
+"${REPODIR}/build/test/soltest" --list_content "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH1_ARGS}
+"${REPODIR}/build/test/soltest" --list_content "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH2_ARGS}
+
+"${REPODIR}/build/test/soltest" -l test_suite "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH1_ARGS} &
+"${REPODIR}/build/test/soltest" -l test_suite "${BOOST_TEST_ARGS[@]}" -- "${SOLTEST_ARGS[@]}" ${BATCH2_ARGS} &
+
 
 wait
