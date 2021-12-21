@@ -30,6 +30,7 @@
 #pragma warning(disable:4535) // calling _set_se_translator requires /EHa
 #endif
 #include <boost/test/unit_test.hpp>
+#include <boost/test/tree/traverse.hpp>
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
@@ -59,6 +60,41 @@ void removeTestSuite(std::string const& _name)
 	assert(id != INV_TEST_UNIT_ID);
 	master.remove(id);
 }
+
+/**
+ * Class that traverses the boost test tree and removes unit tests that are
+ * not in the current batch.
+ */
+class BoostBatcher: public test_tree_visitor
+{
+public:
+	BoostBatcher(solidity::test::Batcher& _batcher):
+		m_batcher(_batcher)
+	{}
+
+	void visit(test_case const& _testCase) override
+	{
+		if (!m_batcher.checkAndAdvance())
+			// disabling them would be nicer, but it does not work like this:
+			// const_cast<test_case&>(_testCase).p_run_status.value = test_unit::RS_DISABLED;
+			m_path.back()->remove(_testCase.p_id);
+	}
+	bool test_suite_start(test_suite const& _testSuite)
+	{
+		m_path.push_back(&const_cast<test_suite&>(_testSuite));
+		return test_tree_visitor::test_suite_start(_testSuite);
+	}
+	void test_suite_finish(test_suite const& _testSuite)
+	{
+		m_path.pop_back();
+		test_tree_visitor::test_suite_finish(_testSuite);
+	}
+
+private:
+	solidity::test::Batcher& m_batcher;
+	std::vector<test_suite*> m_path;
+};
+
 
 void runTestCase(TestCase::Config const& _config, TestCase::TestCaseCreator const& _testCaseCreator)
 {
@@ -179,85 +215,6 @@ void initializeOptions()
 	solidity::test::CommonOptions::setSingleton(std::move(options));
 }
 
-vector<string> const boostTestSuites{
-	"TemporaryDirectoryTest",
-	"SolidityAuctionRegistrar",
-	"SolidityWallet",
-	"Checksum",
-	"CommonData",
-	"CommonIOTest",
-	"FixedHashTest",
-	"IndentedWriterTest",
-	"IpfsHash",
-	"IterateReplacing",
-	"JsonTest",
-	"Keccak256",
-	"LazyInitTests",
-	"LEB128Test",
-	"StringUtils",
-	"SwarmHash",
-	"UTF8",
-	"WhiskersTest",
-	"CharStreamTest",
-	"ScannerTest",
-	"SourceLocationTest",
-	"Assembler",
-	"Optimiser",
-	"CompilabilityChecker",
-	"YulInlinableFunctionFilter",
-	"KnowledgeBase",
-	"YulCodeSize",
-	"YulObjectParser",
-	"YulParser",
-	"ABIDecoderTest",
-	"ABIEncoderTest",
-	"Assembly",
-	"GasCostTests",
-	"GasMeterTests",
-	"SolidityImports",
-	"SolidityInlineAssembly",
-	"LibSolc",
-	"Metadata",
-	"SemVerMatcher",
-	"SolidityCompiler",
-	"SolidityEndToEndTest",
-	"SolidityExpressionCompiler",
-	"SolidityNameAndTypeResolution",
-	"SolidityNatspecJSON",
-	"SolidityOptimizer",
-	"SolidityParser",
-	"SolidityTypes",
-	"StandardCompiler",
-	"ViewPureChecker",
-	"FunctionCallGraphTest",
-	"FileReaderTest",
-	"BytesUtilsTest",
-	"TestFileParserTest",
-	"TestFunctionCallTest",
-	"CommandLineInterfaceTest",
-	"CommandLineInterfaceAllowPathsTest",
-	"CommandLineParserTest",
-	"Phaser",
-// Those are the interactive tests.
-//	"yulOptimizerTests",
-//	"yulInterpreterTests",
-//	"objectCompiler",
-//	"yulControlFlowGraph",
-//	"yulStackLayout",
-//	"controlFlowSideEffects",
-//	"functionSideEffects",
-//	"yulSyntaxTests",
-//	"evmCodeTransform",
-//	"syntaxTests",
-//	"errorRecoveryTests",
-//	"semanticTests",
-//	"ASTJSON",
-//	"ABIJson",
-//	"smtCheckerTests",
-//	"gasTests",
-//	"ewasmTranslationTests",
-};
-
 }
 
 // TODO: Prototype -- why isn't this declared in the boost headers?
@@ -283,20 +240,9 @@ test_suite* init_unit_test_suite( int /*argc*/, char* /*argv*/[] )
 	if (CommonOptions::get().batches > 1)
 		cout << "Batch " << CommonOptions::get().selectedBatch << " out of " << CommonOptions::get().batches << endl;
 
-	cout << "Size of master suite: " << master.size() << endl;
-	solAssert(
-		boostTestSuites.size() == master.size(),
-		"Test suite count ("s +
-		to_string(master.size()) +
-		") does not match the count in boostTest.cpp ("s +
-		to_string(boostTestSuites.size()) +
-		"). If you add or remove a boost test suite, you have to also adjust "s +
-		"the boostTestSuites variable in boostTest.cpp."s
-	);
-
-	for (string const& suite: boostTestSuites)
-		if (!batcher.checkAndAdvance())
-			removeTestSuite(suite);
+	// Batch the boost tests
+	BoostBatcher boostBatcher(batcher);
+	traverse_test_tree(master, boostBatcher, true);
 
 	// Include the interactive tests in the automatic tests as well
 	for (auto const& ts: g_interactiveTestsuites)
