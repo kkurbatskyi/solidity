@@ -897,7 +897,7 @@ jobs:
 
   t_ubu_soltest_all: &t_ubu_soltest_all
     <<: *base_ubuntu2004
-    parallelism: 200
+    parallelism: 100
     <<: *steps_soltest_all
 
   t_ubu_lsp: &t_ubu_lsp
