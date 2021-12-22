@@ -174,7 +174,7 @@ the ``sum`` function iterates over to sum all the values.
         }
 
         function iterate_next(itmap storage self, uint keyIndex) internal view returns (uint r_keyIndex) {
-            keyIndex++;
+            unchecked{keyIndex++;}
             while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
                 keyIndex++;
             return keyIndex;
