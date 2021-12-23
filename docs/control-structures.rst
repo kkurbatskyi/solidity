@@ -92,10 +92,12 @@ to the total balance of that contract:
 
     contract InfoFeed {
         function info() public payable returns (uint ret) { return 42; }
+        function balance() public view returns (uint bal) { return address(this).balance; }
     }
 
     contract Consumer {
         InfoFeed feed;
+        constructor() payable{}
         function setFeed(InfoFeed addr) public { feed = addr; }
         function callFeed() public { feed.info{value: 10, gas: 800}(); }
     }
