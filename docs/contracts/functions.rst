@@ -74,11 +74,11 @@ Function parameters can be used as any other local variable and they can also be
 
 .. note::
 
-  Prior to SOlidity v0.8.0 an :ref:`external function<external-function-calls>` could not accept a
+  Prior to Solidity v0.8.0 an :ref:`external function<external-function-calls>` could not accept a
   multi-dimensional array as an input
-  parameter. This functionality was possible if you enable the ABI coder v2
+  parameter. This functionality was possible if you enabled the ABI coder v2
   by adding ``pragma abicoder v2;`` to your source file.
-
+  
   An :ref:`internal function<external-function-calls>` could still accept a
   multi-dimensional array without enabling the feature.
   
@@ -143,10 +143,11 @@ you must provide return values together with the return statement.
 .. note::
     You cannot return some types from non-internal functions, notably
     multi-dimensional dynamic arrays and structs. If you enable the
-    ABI coder v2 by adding ``pragma abicoder v2;``
+    ABI coder v2 by adding ``pragma abicoder v2;`` 
     to your source file then more types are available, but
     ``mapping`` types are still limited to inside a single contract and you
     cannot transfer them.
+    As of v0.8.0, explisitly using ``pragma abicoder v2;`` is no longer necessary as it is a default encoder used by the compiler.
 
 .. _multi-return:
 
