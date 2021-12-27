@@ -74,13 +74,15 @@ Function parameters can be used as any other local variable and they can also be
 
 .. note::
 
-  An :ref:`external function<external-function-calls>` cannot accept a
+  Prior to SOlidity v0.8.0 an :ref:`external function<external-function-calls>` could not accept a
   multi-dimensional array as an input
-  parameter. This functionality is possible if you enable the ABI coder v2
+  parameter. This functionality was possible if you enable the ABI coder v2
   by adding ``pragma abicoder v2;`` to your source file.
 
-  An :ref:`internal function<external-function-calls>` can accept a
+  An :ref:`internal function<external-function-calls>` could still accept a
   multi-dimensional array without enabling the feature.
+  
+  As of v0.8.0, explisitly using ``pragma abicoder v2;`` is no longer necessary as it is a default encoder used by the compiler.
 
 .. index:: return array, return string, array, string, array of strings, dynamic array, variably sized array, return struct, struct
 
